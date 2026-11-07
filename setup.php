@@ -162,7 +162,7 @@ function topx_seed_sources(): void {
 	}
 
 	$defaults = [
-		['desc', 'ucd/net - Load Average - 1 Minute', '9b82d44eb563027659683765f92c9757', 'load_1min=load_1min', 'Load', 'strip', 'load', '', '2', 'decimal', 0, 1, 2, 4, '|host_description|'],
+		['desc', 'Net-SNMP - Load Average - 1 Minute', '9b82d44eb563027659683765f92c9757', 'load_1min=load_1min', 'Load', 'strip', 'load', '', '2', 'decimal', 0, 1, 2, 4, '|host_description|'],
 		['desc', 'Host MIB - CPU Utilization', 'f6e7d21c19434666bbdac00ccef9932f', 'cpu=cpu', 'Utilization', 'strip', '%', '', '1', 'decimal', 0, 50, 75, 90, '|host_description|'],
 		['desc', 'Host MIB - Hard Drive Space', 'd814fa3b79bd0f8933b6e0834d3f16d0', 'hdd_total%hdd_used', 'Used', 'strip', '%', '', '1', 'decimal', 0, 70, 85, 95, '|host_description|'],
 		['desc', 'Interface - Errors_in + Discards_in', '36335cd98633963a575b70639cd2fdad', 'discards_in+errors_in', 'Errors+Discard', '/', 'errors/Kerrors/Merrors', '1/1000/1000000', '2', 'decimal', 0, null, null, null, '|host_description| - |query_ifName|'],
