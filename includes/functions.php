@@ -145,8 +145,11 @@ function topx_human_readable($bytes, bool $decimal = false): string {
  * the display string shown in the TopX table. 'strip' simply rounds to the
  * configured number of decimal places and appends the unit; '/' walks a
  * slash-delimited set of divisors/suffixes (e.g. bit/Kbit/Mbit) and picks the
- * largest unit whose scaled value is greater than one. Both modes round to
- * $final_decimals places (an empty value means "Auto", i.e. two places).
+ * largest unit whose scaled value is greater than one. When the value is
+ * smaller than every unit in the ladder it falls back to the smallest divisor
+ * so the result is still rounded rather than printed as a raw float. Both modes
+ * round to $final_decimals places (an empty value means "Auto", i.e. two
+ * places).
  *
  * @param float|int|string $value           The computed value to format.
  * @param string           $final_operation The operation token (strip or /).
@@ -166,19 +169,37 @@ function topx_final_operation($value, string $final_operation, string $final_uni
 		$num = array_reverse(explode('/', $final_number), true);
 		$suf = array_reverse(explode('/', $final_unit), true);
 
+		$scaled = null;
+
 		for ($f = cacti_count($num) - 1; $f >= 0; $f--) {
 			if ((float) $num[$f] == 0) {
 				continue;
 			}
 
-			$xvalue = $value / $num[$f];
+			$xvalue = (float) $value / (float) $num[$f];
 
 			if ($xvalue > 1) {
-				$value = round($xvalue, $places) . ' ' . $suf[$f];
+				$scaled = round($xvalue, $places) . ' ' . $suf[$f];
 
 				break;
 			}
 		}
+
+		if ($scaled === null) {
+			// The magnitude is below the smallest unit in the ladder, so no
+			// divisor ever exceeded one. Fall back to the smallest non-zero
+			// divisor and still round, rather than returning the raw float
+			// (e.g. 0.1232774838) that would otherwise fall through unformatted.
+			for ($f = 0; $f < cacti_count($num); $f++) {
+				if ((float) $num[$f] != 0) {
+					$scaled = round((float) $value / (float) $num[$f], $places) . ' ' . $suf[$f];
+
+					break;
+				}
+			}
+		}
+
+		$value = $scaled !== null ? $scaled : round((float) $value, $places);
 	}
 
 	return (string) $value;
