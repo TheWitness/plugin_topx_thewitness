@@ -32,6 +32,8 @@ describe('topx_subunit_scale', function (): void {
 	});
 
 	it('clamps extremely small values at the pico prefix', function (): void {
-		expect(topx_subunit_scale(0.0000000000001, 2))->toBeString();
+		// 1e-13 scales down through milli/micro/nano and stops at pico (the
+		// smallest prefix), where 1e-13 * 1000^4 = 0.1.
+		expect(topx_subunit_scale(0.0000000000001, 2))->toBe('0.1 p');
 	});
 });
