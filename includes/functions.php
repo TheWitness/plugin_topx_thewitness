@@ -141,15 +141,49 @@ function topx_human_readable($bytes, bool $decimal = false): string {
 }
 
 /**
+ * Scales a sub-unit magnitude (|value| < 1) down with SI prefixes
+ * (milli/micro/nano/pico) so a tiny fraction renders as e.g. "277.78 µ" instead
+ * of rounding away to "0" or printing a long raw float. Values that are zero or
+ * at least one are returned simply rounded, with no prefix. The returned string
+ * never carries a unit; callers append their own. Kept free of database access
+ * so it can be unit tested directly.
+ *
+ * @param float $value  The magnitude to scale.
+ * @param int   $places Decimal places to round the scaled magnitude to.
+ *
+ * @return string The rounded magnitude, suffixed with a space and an SI prefix
+ *                letter when |value| < 1 (e.g. "277.78 µ"), otherwise the bare
+ *                rounded number (e.g. "0.43").
+ */
+function topx_subunit_scale(float $value, int $places): string {
+	if ($value == 0.0 || abs($value) >= 1) {
+		return (string) round($value, $places);
+	}
+
+	$prefixes  = ['m', 'µ', 'n', 'p']; // 10^-3, 10^-6, 10^-9, 10^-12
+	$sign      = $value < 0 ? '-' : '';
+	$magnitude = abs($value);
+	$i         = -1;
+
+	while ($magnitude < 1 && $i < cacti_count($prefixes) - 1) {
+		$magnitude *= 1000;
+		$i++;
+	}
+
+	return $sign . round($magnitude, $places) . ' ' . $prefixes[$i];
+}
+
+/**
  * Applies a data source's "final operation" to a computed value, producing
  * the display string shown in the TopX table. 'strip' simply rounds to the
  * configured number of decimal places and appends the unit; '/' walks a
  * slash-delimited set of divisors/suffixes (e.g. bit/Kbit/Mbit) and picks the
  * largest unit whose scaled value is greater than one. When the value is
  * smaller than every unit in the ladder it falls back to the smallest divisor
- * so the result is still rounded rather than printed as a raw float. Both modes
- * round to $final_decimals places (an empty value means "Auto", i.e. two
- * places).
+ * and scales the remainder down with SI sub-unit prefixes (milli/micro/nano/
+ * pico), so a tiny value renders as e.g. "277.78 µ errors" rather than a raw
+ * float or a rounded-away "0". Both modes round to $final_decimals places (an
+ * empty value means "Auto", i.e. two places).
  *
  * @param float|int|string $value           The computed value to format.
  * @param string           $final_operation The operation token (strip or /).
@@ -187,12 +221,14 @@ function topx_final_operation($value, string $final_operation, string $final_uni
 
 		if ($scaled === null) {
 			// The magnitude is below the smallest unit in the ladder, so no
-			// divisor ever exceeded one. Fall back to the smallest non-zero
-			// divisor and still round, rather than returning the raw float
-			// (e.g. 0.1232774838) that would otherwise fall through unformatted.
+			// divisor ever exceeded one. Scale the remainder down with SI
+			// sub-unit prefixes against the smallest non-zero divisor, so a
+			// tiny value renders as e.g. "277.78 µ errors" instead of the raw
+			// float (0.1232774838) that would otherwise fall through, or a
+			// rounded-away "0".
 			for ($f = 0; $f < cacti_count($num); $f++) {
 				if ((float) $num[$f] != 0) {
-					$scaled = round((float) $value / (float) $num[$f], $places) . ' ' . $suf[$f];
+					$scaled = topx_subunit_scale((float) $value / (float) $num[$f], $places) . ' ' . $suf[$f];
 
 					break;
 				}
