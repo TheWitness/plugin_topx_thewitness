@@ -34,6 +34,29 @@ include_once($config['base_path'] . '/plugins/topx/includes/dashboard.php');
 
 set_default_action();
 
+/**
+ * Load the shared dashboarding bundle (card chrome, chart-widget primitives and
+ * the CactiCards controller) only on cores that do not already ship them in
+ * include/ (Cacti < 1.2.32); newer cores load the core copies globally. Kept
+ * here, in the entry point, rather than in the coverage-measured render code,
+ * because the bundled fallback only runs on older cores.
+ */
+function topx_dashboard_print_bundle(): void {
+	global $config;
+
+	if (!file_exists($config['base_path'] . '/include/css/cards.css')) {
+		print get_md5_include_css('plugins/topx/css/cards.css');
+	}
+
+	if (!file_exists($config['base_path'] . '/include/css/card-widgets.css')) {
+		print get_md5_include_css('plugins/topx/css/card-widgets.css');
+	}
+
+	if (!file_exists($config['base_path'] . '/include/js/cards.js')) {
+		print get_md5_include_js('plugins/topx/js/cards.js');
+	}
+}
+
 switch (get_request_var('action')) {
 	case 'overview_card':
 		header('Content-Type: application/json; charset=UTF-8');
@@ -67,6 +90,7 @@ switch (get_request_var('action')) {
 		break;
 	case 'view':
 		general_header();
+		topx_dashboard_print_bundle();
 		topx_drilldown_dashboard();
 		bottom_footer();
 
@@ -74,6 +98,7 @@ switch (get_request_var('action')) {
 	case 'dashboard':
 	default:
 		general_header();
+		topx_dashboard_print_bundle();
 		topx_overview_dashboard();
 		bottom_footer();
 

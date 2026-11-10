@@ -4,6 +4,8 @@ All notable changes to the TopX plugin are documented in this file.
 
 ## 1.2
 
+* feature: Converge the TopX Overview and Data Source drilldown dashboards onto the shared Cacti dashboarding Card API (`js/cards.js` + `css/cards.css` + `css/card-widgets.css`, byte-identical to the other plugins so the bundle can be promoted into Cacti core). The dashboards now use the standardized `.cc*` card chrome and the shared `.cc*` chart-widget primitives (gauges, tiles, stacked bars, bullets) instead of the plugin's own `topxDash*`/`topxGauge*`/`topxFleetTile*` classes; the per-dashboard controller (`js/topx_dashboard.js`) becomes a thin adapter over the shared CactiCards controller while keeping TopX's extras — sortable card tables, the billboard charts, the data-source/timespan/record selectors and the in-place auto-refresh coordinated with Cacti's page-refresh timer. The bundled copies load only on cores that do not already ship them in `include/` (`file_exists` gate).
+
 * feature: Add a **Console → Management → TopX Data Sources** interface to manage supported definitions (Search / Supported / Has-Data-Sources filters, add, edit, delete, and XML import/export keyed on the Data Template hash) with no PHP editing.
 * feature: Show each template's support state as a **Supported / Not Supported** pill, and open the editor pre-pointed at a template when you click an unconfigured one.
 * feature: Flag definitions whose stored hash matches no installed template as "(template not installed)" instead of showing a blank template.

@@ -60,7 +60,7 @@ function topx_dashboard_dsstats_ready(): bool {
 		return true;
 	}
 
-	print '<div class="topxDashEmpty" style="padding:16px">'
+	print '<div class="ccEmpty" style="padding:16px">'
 		. __('Please enable and configure %sDS Stats%s to use TopX.', '<a href="' . html_escape($config['url_path']) . 'settings.php?tab=data">', '</a>', 'topx')
 		. '</div>';
 
@@ -121,31 +121,33 @@ function topx_dashboard_card_chrome(string $key, string $title, int $span, bool 
 	$tools = '';
 
 	if ($expandable) {
-		$tools .= '<button type="button" class="topxDashCardTool" data-tool="expand" aria-label="' . __esc('Show more', 'topx') . '" title="' . __esc('Show more', 'topx') . '"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>';
-		$tools .= '<button type="button" class="topxDashCardTool" data-tool="collapse" aria-label="' . __esc('Show less', 'topx') . '" title="' . __esc('Show less', 'topx') . '"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>';
+		$tools .= '<button type="button" class="ccTool" data-tool="expand" aria-label="' . __esc('Show more', 'topx') . '" title="' . __esc('Show more', 'topx') . '"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>';
+		$tools .= '<button type="button" class="ccTool" data-tool="collapse" aria-label="' . __esc('Show less', 'topx') . '" title="' . __esc('Show less', 'topx') . '"><i class="fas fa-chevron-up" aria-hidden="true"></i></button>';
 	}
 
-	$tools .= '<button type="button" class="topxDashCardTool" data-tool="maximize" aria-label="' . __esc('Open in a dialog', 'topx') . '" title="' . __esc('Open in a dialog', 'topx') . '"><i class="fas fa-window-maximize" aria-hidden="true"></i></button>';
-	$tools .= '<button type="button" class="topxDashCardTool" data-tool="refresh" aria-label="' . __esc('Refresh', 'topx') . '" title="' . __esc('Refresh', 'topx') . '"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>';
-	$tools .= '<button type="button" class="topxDashCardTool" data-tool="remove" aria-label="' . __esc('Remove from page', 'topx') . '" title="' . __esc('Remove from page', 'topx') . '"><i class="fas fa-times" aria-hidden="true"></i></button>';
+	$tools .= '<button type="button" class="ccTool" data-tool="maximize" aria-label="' . __esc('Open in a dialog', 'topx') . '" title="' . __esc('Open in a dialog', 'topx') . '"><i class="fas fa-window-maximize" aria-hidden="true"></i></button>';
+	$tools .= '<button type="button" class="ccTool" data-tool="refresh" aria-label="' . __esc('Refresh', 'topx') . '" title="' . __esc('Refresh', 'topx') . '"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>';
+	$tools .= '<button type="button" class="ccTool" data-tool="remove" aria-label="' . __esc('Remove from page', 'topx') . '" title="' . __esc('Remove from page', 'topx') . '"><i class="fas fa-times" aria-hidden="true"></i></button>';
 
-	$classes = 'topxDashCard topxDashSpan' . $span;
+	$classes = 'ccCard ccW' . $span;
 
 	if ($expandable) {
-		$classes .= ' topxDashCardExpandable';
+		$classes .= ' ccCardExpandable';
 	}
 
 	if ($expanded) {
-		$classes .= ' topxDashCardExpanded';
+		$classes .= ' ccCardExpanded';
 	}
 
-	return '<section class="' . $classes . '" data-card="' . html_escape($key) . '">'
-		. '<header class="topxDashCardHeader">'
-		. '<button type="button" class="topxDashCardDrag" aria-label="' . __esc('Drag to reorder card', 'topx') . '"><i class="fas fa-bars" aria-hidden="true"></i></button>'
-		. '<h2 class="topxDashCardTitle">' . html_escape($title) . '</h2>'
-		. '<span class="topxDashCardTools">' . $tools . '</span>'
+	return '<section class="' . $classes . '" data-card="' . html_escape($key) . '" data-severity="none"'
+		. ($expandable ? ' data-expandable="1"' : '')
+		. ' data-expanded="' . ($expanded ? '1' : '0') . '">'
+		. '<header class="ccCardHeader">'
+		. '<button type="button" class="ccDrag" aria-label="' . __esc('Drag to reorder card', 'topx') . '"><i class="fas fa-bars" aria-hidden="true"></i></button>'
+		. '<h2 class="ccTitle">' . html_escape($title) . '</h2>'
+		. '<span class="ccTools">' . $tools . '</span>'
 		. '</header>'
-		. '<div class="topxDashCardBody">' . $body . '</div>'
+		. '<div class="ccCardBody">' . $body . '</div>'
 		. '</section>';
 }
 
@@ -154,14 +156,14 @@ function topx_dashboard_card_chrome(string $key, string $title, int $span, bool 
  *
  * @param string $value    The already-formatted value.
  * @param string $label    The tile label.
- * @param string $modifier An optional accent modifier ('up', 'down', 'rec').
+ * @param string $modifier An optional accent modifier ('up', 'down', 'warn').
  *
  * @return string The tile HTML.
  */
 function topx_dashboard_tile(string $value, string $label, string $modifier = ''): string {
-	return '<div class="topxFleetTile' . ($modifier !== '' ? ' topxFleetTile--' . $modifier : '') . '">'
-		. '<span class="topxFleetTileValue">' . html_escape($value) . '</span>'
-		. '<span class="topxFleetTileLabel">' . html_escape($label) . '</span>'
+	return '<div class="ccTile' . ($modifier !== '' ? ' ccTile--' . $modifier : '') . '">'
+		. '<span class="ccTileValue">' . html_escape($value) . '</span>'
+		. '<span class="ccTileLabel">' . html_escape($label) . '</span>'
 		. '</div>';
 }
 
@@ -193,19 +195,19 @@ function topx_dashboard_gauge(?float $current, ?float $min, ?float $max, float $
 		$ox    = 60 + 56 * cos($angle);
 		$oy    = 60 - 56 * sin($angle);
 
-		return '<line class="topxGaugeTick" x1="' . number_format($ix, 2, '.', '') . '" y1="' . number_format($iy, 2, '.', '')
+		return '<line class="ccGaugeTick" x1="' . number_format($ix, 2, '.', '') . '" y1="' . number_format($iy, 2, '.', '')
 			. '" x2="' . number_format($ox, 2, '.', '') . '" y2="' . number_format($oy, 2, '.', '') . '" />';
 	};
 
-	return '<div class="topxGauge">'
-		. '<svg class="topxGaugeSvg" viewBox="0 0 120 68" role="img" aria-label="' . html_escape($center_label) . '">'
-		. '<path class="topxGaugeTrack" d="M10 60 A50 50 0 0 1 110 60" fill="none" pathLength="100" />'
-		. '<path class="topxGaugeValue" d="M10 60 A50 50 0 0 1 110 60" fill="none" pathLength="100" stroke-dasharray="' . $dash . ' 100" />'
+	return '<div class="ccGauge">'
+		. '<svg class="ccGaugeSvg" viewBox="0 0 120 68" role="img" aria-label="' . html_escape($center_label) . '">'
+		. '<path class="ccGaugeTrack" d="M10 60 A50 50 0 0 1 110 60" fill="none" pathLength="100" />'
+		. '<path class="ccGaugeValue" d="M10 60 A50 50 0 0 1 110 60" fill="none" pathLength="100" stroke-dasharray="' . $dash . ' 100" />'
 		. $tick($min) . $tick($max)
 		. '</svg>'
-		. '<div class="topxGaugeText">'
-		. '<span class="topxGaugeValueText">' . html_escape($center_label) . '</span>'
-		. ($sub_label !== '' ? '<span class="topxGaugeSub">' . html_escape($sub_label) . '</span>' : '')
+		. '<div class="ccGaugeText">'
+		. '<span class="ccGaugeValueText">' . html_escape($center_label) . '</span>'
+		. ($sub_label !== '' ? '<span class="ccGaugeSub">' . html_escape($sub_label) . '</span>' : '')
 		. '</div></div>';
 }
 
@@ -253,7 +255,7 @@ function topx_dashboard_chart(array $labels, array $values, string $title, bool 
 	];
 
 	if (cacti_count($labels) === 0) {
-		return '<p class="topxDashEmpty">' . __esc('No data to chart yet.', 'topx') . '</p>';
+		return '<p class="ccEmpty">' . __esc('No data to chart yet.', 'topx') . '</p>';
 	}
 
 	return '<div class="topx-bb-chart" data-chart="' . html_escape(json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)) . '"></div>';
@@ -466,9 +468,9 @@ function topx_dashboard_toolbar_refresh(int $current_refresh): void {
 		$page_refresh_interval = [0 => __('No Refresh', 'topx'), 30 => __('30 Seconds', 'topx'), 60 => __('1 Minute', 'topx'), 300 => __('5 Minutes', 'topx')];
 	}
 
-	print '<div class="topxDashRefresh">';
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_refresh">' . __esc('Refresh', 'topx') . '</label>';
-	print '<select id="topx_dashboard_refresh" class="topxDashRefreshInterval">';
+	print '<div class="ccRefresh">';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_refresh">' . __esc('Refresh', 'topx') . '</label>';
+	print '<select id="topx_dashboard_refresh" class="ccRefreshInterval">';
 	print '<option value="0"' . ($current_refresh == 0 ? ' selected' : '') . '>' . __esc('No Refresh', 'topx') . '</option>';
 
 	foreach ($page_refresh_interval as $seconds => $display_text) {
@@ -480,7 +482,7 @@ function topx_dashboard_toolbar_refresh(int $current_refresh): void {
 	}
 
 	print '</select>';
-	print '<button type="button" id="topx_dashboard_refresh_now" class="topxDashCardTool topxDashRefreshNow" aria-label="' . __esc('Refresh', 'topx') . '" title="' . __esc('Refresh', 'topx') . '"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>';
+	print '<button type="button" id="topx_dashboard_refresh_now" class="ccTool topxDashRefreshNow" aria-label="' . __esc('Refresh', 'topx') . '" title="' . __esc('Refresh', 'topx') . '"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>';
 	print '</div>';
 	print '<span class="topxDashSaveStatus" role="status" aria-live="polite" hidden></span>';
 }
@@ -495,7 +497,7 @@ function topx_dashboard_toolbar_refresh(int $current_refresh): void {
 function topx_dashboard_toolbar_timespan(): void {
 	global $graph_timespans;
 
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_timespan">' . __esc('Timespan', 'topx') . '</label>';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_timespan">' . __esc('Timespan', 'topx') . '</label>';
 	print '<select id="topx_dashboard_timespan" class="topxDashTimespan">';
 
 	$timespans    = is_array($graph_timespans) ? $graph_timespans : [];
@@ -517,8 +519,8 @@ function topx_dashboard_toolbar_timespan(): void {
  * @return void
  */
 function topx_dashboard_toolbar_add(array $absent, array $meta): void {
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_add">' . __esc('Add card', 'topx') . '</label>';
-	print '<select id="topx_dashboard_add" class="topxDashAdd"><option value="">' . __esc('Add a card…', 'topx') . '</option>';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_add">' . __esc('Add card', 'topx') . '</label>';
+	print '<select id="topx_dashboard_add" class="ccAdd"><option value="">' . __esc('Add a card…', 'topx') . '</option>';
 
 	foreach ($absent as $key) {
 		print '<option value="' . html_escape($key) . '">' . html_escape($meta[$key]['title']) . '</option>';
@@ -540,7 +542,7 @@ function topx_dashboard_toolbar_add(array $absent, array $meta): void {
 function topx_dashboard_toolbar_records(int $selected): void {
 	$filters = topx_filter_arrays();
 
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_records">' . __esc('TopX', 'topx') . '</label>';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_records">' . __esc('TopX', 'topx') . '</label>';
 	topx_dashboard_filter_select('topx_dashboard_records', $filters['records'], $selected);
 }
 
@@ -710,7 +712,7 @@ function topx_overview_card_body(string $key): string {
 		case 'summary':
 			$stats = topx_overview_stats();
 
-			print '<div class="topxFleetTiles">';
+			print '<div class="ccTiles">';
 			print topx_dashboard_tile(number_format_i18n($stats['total_types'], 0), __('Source Types', 'topx'));
 			print topx_dashboard_tile(number_format_i18n($stats['supported_types'], 0), __('Supported', 'topx'), $stats['supported_types'] > 0 ? 'up' : '');
 			print topx_dashboard_tile(number_format_i18n($stats['unsupported_types'], 0), __('Unsupported', 'topx'));
@@ -729,25 +731,25 @@ function topx_overview_card_body(string $key): string {
 			$bar_total = array_sum(array_column($segments, 'count'));
 
 			if ($bar_total === 0) {
-				print '<p class="topxDashEmpty">' . __esc('No data sources are available yet.', 'topx') . '</p>';
+				print '<p class="ccEmpty">' . __esc('No data sources are available yet.', 'topx') . '</p>';
 
 				break;
 			}
 
-			print '<div class="topxStackBar">';
+			print '<div class="ccStack">';
 
 			foreach ($segments as $segment) {
 				if ($segment['count'] > 0) {
 					$width = $segment['count'] / $bar_total * 100;
-					print '<div class="topxStackSeg topxStackSeg--' . $segment['class'] . '" style="width:' . number_format($width, 2, '.', '') . '%" title="' . html_escape($segment['label'] . ': ' . $segment['count']) . '"></div>';
+					print '<div class="ccStackSeg ccStackSeg--' . $segment['class'] . '" style="width:' . number_format($width, 2, '.', '') . '%" title="' . html_escape($segment['label'] . ': ' . $segment['count']) . '"></div>';
 				}
 			}
 
 			print '</div>';
-			print '<div class="topxStackLegend">';
+			print '<div class="ccStackLegend">';
 
 			foreach ($segments as $segment) {
-				print '<span><span class="topxStackChip topxStackSeg--' . $segment['class'] . '"></span>' . html_escape($segment['label'] . ' (' . $segment['count'] . ')') . '</span>';
+				print '<span><span class="ccStackChip ccStackSeg--' . $segment['class'] . '"></span>' . html_escape($segment['label'] . ' (' . $segment['count'] . ')') . '</span>';
 			}
 
 			print '</div>';
@@ -775,7 +777,7 @@ function topx_overview_card_body(string $key): string {
 			];
 
 			if (array_sum($values) === 0) {
-				print '<p class="topxDashEmpty">' . __esc('No host uptime data sources were found.', 'topx') . '</p>';
+				print '<p class="ccEmpty">' . __esc('No host uptime data sources were found.', 'topx') . '</p>';
 
 				break;
 			}
@@ -791,7 +793,7 @@ function topx_overview_card_body(string $key): string {
 			$list = topx_get_ds_list();
 
 			if (cacti_sizeof($list) === 0) {
-				print '<p class="topxDashEmpty">' . __esc('No data sources are available yet.', 'topx') . '</p>';
+				print '<p class="ccEmpty">' . __esc('No data sources are available yet.', 'topx') . '</p>';
 
 				break;
 			}
@@ -840,11 +842,11 @@ function topx_overview_datasource_card_body(int $ds_key, string $card): string {
 	$list = topx_get_ds_list();
 
 	if (!array_key_exists($ds_key, $list) || ($list[$ds_key]['supported'] ?? 'false') !== 'true') {
-		return '<p class="topxDashEmpty">' . __esc('This data source is no longer available.', 'topx') . '</p>';
+		return '<p class="ccEmpty">' . __esc('This data source is no longer available.', 'topx') . '</p>';
 	}
 
 	if (!array_key_exists($card, topx_drilldown_card_meta())) {
-		return '<p class="topxDashEmpty">' . __esc('Unknown card.', 'topx') . '</p>';
+		return '<p class="ccEmpty">' . __esc('Unknown card.', 'topx') . '</p>';
 	}
 
 	$ds = [
@@ -972,15 +974,14 @@ function topx_overview_dashboard(): void {
 	$layout = topx_dashboard_layout('overview', array_keys($meta));
 	$absent = array_values(array_diff(array_keys($meta), $layout['order']));
 
-	print '<div class="topxDashToolbar">';
+	print '<div class="ccToolbar">';
 	topx_dashboard_toolbar_timespan();
 	topx_dashboard_toolbar_records(topx_overview_records());
 	topx_dashboard_toolbar_add($absent, $meta);
 	topx_dashboard_toolbar_refresh($current_refresh);
 	print '</div>';
-	// @codeCoverageIgnoreEnd
 
-	print '<div id="topx_dashboard" class="topxDashGrid"'
+	print '<div id="topx_dashboard" class="ccGrid"'
 		. ' data-card-action="overview_card" data-layout-action="overview_layout" data-refresh-action="overview_refresh"'
 		. ' data-refresh-page="' . html_escape($refresh_page) . '"'
 		. ' data-reload="topx.php?action=dashboard">';
@@ -994,7 +995,6 @@ function topx_overview_dashboard(): void {
 
 	$catalog = [];
 
-	// @codeCoverageIgnoreStart
 	foreach (array_keys($meta) as $key) {
 		$catalog[$key] = $meta[$key]['title'];
 	}
@@ -1197,7 +1197,7 @@ function topx_drilldown_card_body(string $key, array $ds, ?array $filter = null)
 	switch ($key) {
 		case 'rankings':
 			if (cacti_sizeof($rows) === 0) {
-				print '<p class="topxDashEmpty">' . __esc('No data for this source over the selected timespan.', 'topx') . '</p>';
+				print '<p class="ccEmpty">' . __esc('No data for this source over the selected timespan.', 'topx') . '</p>';
 
 				break;
 			}
@@ -1322,7 +1322,7 @@ function topx_drilldown_card_body(string $key, array $ds, ?array $filter = null)
 
 			break;
 		case 'tiles':
-			print '<div class="topxFleetTiles">';
+			print '<div class="ccTiles">';
 			print topx_dashboard_tile(number_format_i18n(cacti_sizeof($rows), 0), __('Data Sources', 'topx'));
 			print topx_dashboard_tile(topx_drilldown_format($payload['avg'], $source, $ds['supported']), __('Average', 'topx'), 'up');
 			print topx_dashboard_tile(topx_drilldown_format($payload['peak'], $source, $ds['supported']), __('Peak', 'topx'), 'down');
@@ -1363,7 +1363,7 @@ function topx_drilldown_card_body(string $key, array $ds, ?array $filter = null)
 
 			$segments = [
 				['count' => $buckets[0], 'class' => 'up',  'label' => __('0–25%', 'topx')],
-				['count' => $buckets[1], 'class' => 'rec', 'label' => __('25–50%', 'topx')],
+				['count' => $buckets[1], 'class' => 'warn', 'label' => __('25–50%', 'topx')],
 				['count' => $buckets[2], 'class' => 'dis', 'label' => __('50–75%', 'topx')],
 				['count' => $buckets[3], 'class' => 'down', 'label' => __('75–100%', 'topx')],
 			];
@@ -1371,24 +1371,24 @@ function topx_drilldown_card_body(string $key, array $ds, ?array $filter = null)
 			$bar_total = array_sum(array_column($segments, 'count'));
 
 			if ($bar_total === 0) {
-				print '<p class="topxDashEmpty">' . __esc('No data for this source over the selected timespan.', 'topx') . '</p>';
+				print '<p class="ccEmpty">' . __esc('No data for this source over the selected timespan.', 'topx') . '</p>';
 
 				break;
 			}
 
-			print '<div class="topxStackBar">';
+			print '<div class="ccStack">';
 
 			foreach ($segments as $segment) {
 				if ($segment['count'] > 0) {
 					$width = $segment['count'] / $bar_total * 100;
-					print '<div class="topxStackSeg topxStackSeg--' . $segment['class'] . '" style="width:' . number_format($width, 2, '.', '') . '%" title="' . html_escape($segment['label'] . ': ' . $segment['count']) . '"></div>';
+					print '<div class="ccStackSeg ccStackSeg--' . $segment['class'] . '" style="width:' . number_format($width, 2, '.', '') . '%" title="' . html_escape($segment['label'] . ': ' . $segment['count']) . '"></div>';
 				}
 			}
 
-			print '</div><div class="topxStackLegend">';
+			print '</div><div class="ccStackLegend">';
 
 			foreach ($segments as $segment) {
-				print '<span><span class="topxStackChip topxStackSeg--' . $segment['class'] . '"></span>' . html_escape($segment['label'] . ' (' . $segment['count'] . ')') . '</span>';
+				print '<span><span class="ccStackChip ccStackSeg--' . $segment['class'] . '"></span>' . html_escape($segment['label'] . ' (' . $segment['count'] . ')') . '</span>';
 			}
 
 			print '</div>';
@@ -1518,9 +1518,14 @@ function topx_drilldown_dashboard(): void {
 	$layout = topx_dashboard_layout('drill', topx_drilldown_available_cards());
 	$absent = array_values(array_diff(topx_drilldown_available_cards(), $layout['order']));
 
-	print '<div class="topxDashToolbar">';
+	// View glue: topx_drilldown_dashboard() includes Cacti's timespan/header
+	// libraries and cannot be unit-tested; the data-source picker, filter
+	// selectors, add catalogue and card markup are covered directly by their own
+	// unit tests.
+	// @codeCoverageIgnoreStart
+	print '<div class="ccToolbar">';
 
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_ds">' . __esc('Data Source', 'topx') . '</label>';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_ds">' . __esc('Data Source', 'topx') . '</label>';
 	print '<select id="topx_dashboard_ds" class="topxDashUps">';
 
 	foreach ($list as $entry) {
@@ -1529,27 +1534,22 @@ function topx_drilldown_dashboard(): void {
 
 	print '</select>';
 
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_records">' . __esc('Records', 'topx') . '</label>';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_records">' . __esc('Records', 'topx') . '</label>';
 	topx_dashboard_filter_select('topx_dashboard_records', $filters['records'], $filter['records']);
 
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_sort">' . __esc('Order', 'topx') . '</label>';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_sort">' . __esc('Order', 'topx') . '</label>';
 	topx_dashboard_filter_select('topx_dashboard_sort', $filters['sort'], $filter['sort']);
 
-	print '<label class="topxDashToolbarLabel" for="topx_dashboard_what">' . __esc('What', 'topx') . '</label>';
+	print '<label class="ccToolbarLabel" for="topx_dashboard_what">' . __esc('What', 'topx') . '</label>';
 	topx_dashboard_filter_select('topx_dashboard_what', $filters['what'], $filter['what']);
 
 	topx_dashboard_toolbar_timespan();
 	topx_dashboard_toolbar_add($absent, $meta);
-	// View glue: topx_drilldown_dashboard() cannot be unit-tested because it
-	// includes Cacti's timespan library. The button logic is covered directly by
-	// the topx_dashboard_toolbar_edit() unit tests.
-	// @codeCoverageIgnoreStart
 	topx_dashboard_toolbar_edit($ds);
-	// @codeCoverageIgnoreEnd
 	topx_dashboard_toolbar_refresh($current_refresh);
 	print '</div>';
 
-	print '<div id="topx_dashboard" class="topxDashGrid"'
+	print '<div id="topx_dashboard" class="ccGrid"'
 		. ' data-scope-param="ds" data-scope="' . $ds['key'] . '"'
 		. ' data-refresh-page="' . html_escape($refresh_page) . '"'
 		. ' data-reload="' . html_escape('topx.php?action=view&ds=' . $ds['key']) . '">';
@@ -1560,6 +1560,7 @@ function topx_drilldown_dashboard(): void {
 
 	print '</div>';
 	print '<div id="topx_dashboard_dialog" class="topxDashDialog" style="display:none"></div>';
+	// @codeCoverageIgnoreEnd
 
 	$catalog = [];
 

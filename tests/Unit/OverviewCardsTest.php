@@ -178,7 +178,7 @@ describe('topx_overview_datasource_card_body', function (): void {
 		// Routed through topx_overview_card_body so the composite dispatch runs.
 		$body = topx_overview_card_body('ds-7:tiles');
 
-		expect($body)->toContain('topxFleetTiles');
+		expect($body)->toContain('ccTiles');
 	});
 
 	it('shows an empty state when the source is no longer available', function (): void {
@@ -251,7 +251,7 @@ describe('topx_overview_render_card', function (): void {
 
 		$html = topx_overview_render_card('ds-7:tiles');
 
-		expect($html)->toContain('topxDashCard');
+		expect($html)->toContain('ccCard');
 		expect($html)->toContain('data-card="ds-7:tiles"');
 		expect($html)->toContain('CPU : Summary');
 	});

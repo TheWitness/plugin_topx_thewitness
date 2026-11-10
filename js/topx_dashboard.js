@@ -23,6 +23,7 @@
  * settings_user. */
 
 var topxDashDragging = null;
+var topxDashAdapter = null;
 
 /** Cacti's browser auto-logout timer as it was when this script loaded, before the
  *  dashboard replaces it with its own refresh. Choosing "No Refresh" puts it back (a
@@ -175,77 +176,170 @@ function topxDashBindSort(root) {
 	});
 }
 
+
+/** Re-fetch a single card's HTML and swap it in through the shared controller,
+ *  preserving the card's live sort. Used by the refresh-all button and the
+ *  Cacti-timer auto-refresh. */
+function topxDashRefreshCard(grid, card, done) {
+	var icon = card.querySelector('.ccTool[data-tool="refresh"] .fa, .ccTool[data-tool="refresh"] .fas');
+	if (icon) {
+		icon.classList.add('fa-spin');
+	}
+	var settle = function() {
+		if (icon) {
+			icon.classList.remove('fa-spin');
+		}
+		if (done) {
+			done();
+		}
+	};
+	var snapshot = topxDashSortSnapshot(card);
+	var cfg = topxDashCfg(grid);
+	$.post(cfg.page, topxDashPost(grid, {action: cfg.cardAction, card: card.dataset.card, expanded: card.classList.contains('ccCardExpanded') ? '1' : '0'}), null, 'json').done(function(data) {
+		if (!data || !data.html || !card.parentNode || !window.CactiCards || !topxDashAdapter) {
+			settle();
+			return;
+		}
+		// replaceCard rebinds the fresh card and re-runs applyTheme (which renders
+		// the chart and prepares the sort headers); restore the live sort after.
+		var fresh = CactiCards.replaceCard(grid, topxDashAdapter, card, data.html);
+		if (fresh) {
+			topxDashSortRestore(fresh, snapshot);
+		}
+		if (done) {
+			done();
+		}
+	}).fail(settle);
+}
+
+/** Wire the dashboard grid to the shared card chrome (js/cards.js) plus topx's
+ *  extras: the sortable card tables, the billboard charts, the data-source and
+ *  timespan selectors, the drilldown record/order filters, a persisted
+ *  auto-refresh interval and a manual refresh-all. The grid's data attributes
+ *  (read by topxDashCfg) carry the overview/drilldown scope, so one initialiser
+ *  serves both dashboards. */
 function initTopxDashboard() {
 	$(function() {
 		var grid = document.getElementById('topx_dashboard');
-		if (!grid) {
+		if (!grid || !window.CactiCards) {
 			return;
 		}
 
-		// Delegated so the sortable headers also work in cards that are refreshed or
-		// added later.
-		topxDashBindSort(grid);
+		var cfg = topxDashCfg(grid);
 
-		grid.querySelectorAll('.topxDashCard').forEach(function(card) {
-			topxDashBindCard(grid, card);
-		});
+		function fetchCard(id, expanded) {
+			return $.post(cfg.page, topxDashPost(grid, {action: cfg.cardAction, card: id, expanded: expanded ? '1' : '0'}), null, 'json').then(function(d) {
+				return d && d.html ? d.html : null;
+			});
+		}
 
-		grid.addEventListener('dragover', function(event) {
-			if (!topxDashDragging) {
-				return;
-			}
-			event.preventDefault();
-			event.dataTransfer.dropEffect = 'move';
-			var before = topxDashDragReference(grid, event.clientX, event.clientY);
-			if (before == null) {
-				grid.appendChild(topxDashDragging);
-			} else if (before !== topxDashDragging) {
-				grid.insertBefore(topxDashDragging, before);
-			}
-		});
+		/* The live card currently in the grid for an id; an overlapping swap may
+		 * have detached the node captured when a request was issued. */
+		function liveCard(id) {
+			var match = null;
+			grid.querySelectorAll('.ccCard').forEach(function(card) {
+				if (match === null && card.dataset.card === id) {
+					match = card;
+				}
+			});
+			return match;
+		}
 
-		// Per-card tool buttons bubble to the grid.
-		$(grid).off('click.topxdash').on('click.topxdash', '.topxDashCardTool', function() {
-			var card = this.closest('.topxDashCard');
-			if (!card) {
-				return;
-			}
-			switch (this.dataset.tool) {
-				case 'expand':   card.classList.add('topxDashCardExpanded'); topxDashSaveLayout(grid); break;
-				case 'collapse': card.classList.remove('topxDashCardExpanded'); topxDashSaveLayout(grid); break;
-				case 'maximize': topxDashMaximize(card); break;
-				case 'refresh':  topxDashRefreshCard(grid, card); break;
-				case 'remove':   topxDashRemoveCard(grid, card); break;
-			}
-		});
+		// Guard against appending the same absent card twice before its fetch lands.
+		var pendingAdds = {};
 
-		var add = document.getElementById('topx_dashboard_add');
-		if (add) {
-			$(add).off('change.topxdash').on('change.topxdash', function() {
-				var key = this.value;
-				this.value = '';
-				if (key) {
-					topxDashAddCard(grid, key);
+		// Serialize layout saves so a newer snapshot cannot be overwritten by a
+		// slower, earlier POST the shared debounce already released.
+		var layoutSaving = false;
+		var layoutQueued = null;
+
+		function sendLayout(payload) {
+			layoutSaving = true;
+			$.post(cfg.page, topxDashPost(grid, {action: cfg.layoutAction, layout: JSON.stringify(payload)}), null, 'json').always(function() {
+				layoutSaving = false;
+				if (layoutQueued) {
+					var next = layoutQueued;
+					layoutQueued = null;
+					sendLayout(next);
 				}
 			});
 		}
 
-		var ups = document.getElementById('topx_dashboard_ds');
-		if (ups) {
-			// Switch the per-UPS dashboard in place (no full page refresh), like the
-			// timespan selector and the UPS filter do.
-			$(ups).off('change.topxdash').on('change.topxdash', function() {
+		var adapter = {
+			addControl: 'topx_dashboard_add',
+
+			// Runs on init, add and replace: prepare the sortable headers and draw
+			// the billboard charts for whatever cards are now on the grid.
+			applyTheme: function(gridEl) {
+				topxDashBindSort(gridEl);
+				topxDashRenderCharts(gridEl);
+			},
+
+			fetchCard: function(id, state) {
+				return fetchCard(id, state && state.expanded);
+			},
+
+			// Own the per-card Refresh swap so the live sort survives the swap.
+			onRefresh: function(id, card) {
+				var snapshot = topxDashSortSnapshot(card);
+				fetchCard(id, card.classList.contains('ccCardExpanded')).then(function(html) {
+					if (html != null && window.CactiCards) {
+						var fresh = CactiCards.replaceCard(grid, adapter, card, html);
+						if (fresh) {
+							topxDashSortRestore(fresh, snapshot);
+						}
+					}
+				});
+			},
+
+			onAddCard: function(id) {
+				if (liveCard(id) || pendingAdds[id]) {
+					return null;
+				}
+				pendingAdds[id] = true;
+				return fetchCard(id, false).always(function() {
+					delete pendingAdds[id];
+				});
+			},
+
+			onLayoutChange: function(state) {
+				var expanded = {};
+				state.order.forEach(function(id) {
+					if (state.cards[id] && state.cards[id].expanded) {
+						expanded[id] = true;
+					}
+				});
+				var payload = {order: state.order, expanded: expanded};
+				if (layoutSaving) {
+					layoutQueued = payload;
+				} else {
+					sendLayout(payload);
+				}
+				topxDashSyncAddOptions(grid);
+			},
+
+			maximize: function(id, mode, card) {
+				topxDashMaximize(card);
+			}
+		};
+
+		topxDashAdapter = adapter;
+		CactiCards.init(grid, adapter);
+		topxDashSyncAddOptions(grid);
+
+		var ds = document.getElementById('topx_dashboard_ds');
+		if (ds) {
+			// Switch the per-data-source dashboard in place (no full page refresh).
+			$(ds).off('change.topxdash').on('change.topxdash', function() {
 				if (this.value) {
 					loadPageNoHeader('topx.php?action=view&ds=' + encodeURIComponent(this.value) + '&header=false');
 				}
 			});
 		}
 
-		// Changing the timespan loads the dashboard in place (no full page refresh)
-		// so Cacti's session timespan selector picks up predefined_timespan, which
-		// drives both the graph cards and the RRD bullet/gauge queries. The grid's
-		// reload target (per-UPS view or the fleet dashboard) carries the id, so
-		// build the URL from it and request it without the page header.
+		// Changing the timespan loads the dashboard in place so Cacti's session
+		// timespan selector picks up predefined_timespan, which drives the graph
+		// cards and the RRD bullet/gauge queries.
 		var timespan = document.getElementById('topx_dashboard_timespan');
 		if (timespan) {
 			$(timespan).off('change.topxdash').on('change.topxdash', function() {
@@ -255,9 +349,8 @@ function initTopxDashboard() {
 			});
 		}
 
-		// Changing the interval persists the preference through a CSRF-protected POST
-		// (never a drive-by GET), then applies it straight away without reloading the
-		// page. If the save fails the dropdown goes back to the interval in force.
+		// Changing the interval persists the preference through a CSRF-protected
+		// POST, then applies it without reloading. A failed save rolls back.
 		var interval = document.getElementById('topx_dashboard_refresh');
 		if (interval) {
 			interval.dataset.previous = interval.value;
@@ -273,10 +366,10 @@ function initTopxDashboard() {
 			});
 		}
 
-		// The drilldown records/order/what selects reload the dashboard in place
-		// (like the timespan selector) so the server re-validates and persists them.
+		// The drilldown records/order/what selects reload the dashboard in place so
+		// the server re-validates and persists them.
 		var filterReload = function() {
-			var cfg = topxDashCfg(grid);
+			var c = topxDashCfg(grid);
 			var params = [];
 			['records', 'sort', 'what'].forEach(function(name) {
 				var el = document.getElementById('topx_dashboard_' + name);
@@ -284,8 +377,8 @@ function initTopxDashboard() {
 					params.push(name + '=' + encodeURIComponent(el.value));
 				}
 			});
-			var sep = cfg.reload.indexOf('?') === -1 ? '?' : '&';
-			loadPageNoHeader(cfg.reload + sep + params.join('&') + '&header=false');
+			var sep = c.reload.indexOf('?') === -1 ? '?' : '&';
+			loadPageNoHeader(c.reload + sep + params.join('&') + '&header=false');
 		};
 		['records', 'sort', 'what'].forEach(function(name) {
 			var el = document.getElementById('topx_dashboard_' + name);
@@ -293,8 +386,6 @@ function initTopxDashboard() {
 				$(el).off('change.topxdash').on('change.topxdash', filterReload);
 			}
 		});
-
-		topxDashRenderCharts(grid);
 	});
 }
 
@@ -536,165 +627,11 @@ function topxDashRenderChartLegend(node, items) {
 	node.parentNode.insertBefore(wrap, node.nextSibling);
 }
 
-/** Wire a single card's drag handle (mouse + keyboard) and drag events. */
-function topxDashBindCard(grid, card) {
-	topxDashPrepSortHeaders(card);
 
-	var handle = card.querySelector('.topxDashCardDrag');
-	if (!handle) {
-		return;
-	}
 
-	// Arm HTML5 drag only from the handle, and disarm on release when no drag
-	// began so selecting content elsewhere can't drag the card.
-	var disarm = function() { card.draggable = false; };
-	handle.addEventListener('mousedown', function() {
-		card.draggable = true;
-		document.addEventListener('mouseup', disarm, {once: true});
-	});
-	handle.addEventListener('touchstart', function() {
-		card.draggable = true;
-		document.addEventListener('touchend', disarm, {once: true});
-		document.addEventListener('touchcancel', disarm, {once: true});
-	}, {passive: true});
 
-	// Keyboard-accessible reordering: move the card with the arrow keys.
-	handle.addEventListener('keydown', function(event) {
-		var back = event.key === 'ArrowLeft' || event.key === 'ArrowUp';
-		var fwd  = event.key === 'ArrowRight' || event.key === 'ArrowDown';
-		if (!back && !fwd) {
-			return;
-		}
-		event.preventDefault();
-		if (back && card.previousElementSibling) {
-			grid.insertBefore(card, card.previousElementSibling);
-		} else if (fwd && card.nextElementSibling) {
-			grid.insertBefore(card.nextElementSibling, card);
-		} else {
-			return;
-		}
-		handle.focus();
-		topxDashSaveLayout(grid);
-	});
 
-	card.addEventListener('dragstart', function(event) {
-		topxDashDragging = card;
-		card.classList.add('topxDashCardDragging');
-		event.dataTransfer.effectAllowed = 'move';
-		try { event.dataTransfer.setData('text/plain', card.dataset.card || ''); } catch (error) { /* IE guard */ }
-	});
 
-	card.addEventListener('dragend', function() {
-		card.draggable = false;
-		card.classList.remove('topxDashCardDragging');
-		if (topxDashDragging) {
-			topxDashDragging = null;
-			topxDashSaveLayout(grid);
-		}
-	});
-}
-
-/** The card the dragged card should be inserted before for the current pointer
- *  position, or null to append at the end. */
-function topxDashDragReference(grid, x, y) {
-	var cards = Array.prototype.slice.call(grid.querySelectorAll('.topxDashCard:not(.topxDashCardDragging)'));
-	for (var i = 0; i < cards.length; i++) {
-		var rect = cards[i].getBoundingClientRect();
-		if (y < rect.top - 1) {
-			return cards[i];
-		}
-		if (y <= rect.bottom && x < rect.left + rect.width / 2) {
-			return cards[i];
-		}
-	}
-	return null;
-}
-
-/** Add a card from the catalogue: fetch its HTML, append it, persist and refresh
- *  the "Add" options. */
-function topxDashAddCard(grid, key) {
-	if (topxDashHasCard(grid, key)) {
-		return;
-	}
-	var cfg = topxDashCfg(grid);
-	$.post(cfg.page, topxDashPost(grid, {action: cfg.cardAction, card: key}), null, 'json').done(function(data) {
-		if (!data || !data.html || topxDashHasCard(grid, key)) {
-			return;
-		}
-		var card = topxDashParseCard(data.html);
-		if (!card) {
-			return;
-		}
-		grid.appendChild(card);
-		topxDashBindCard(grid, card);
-		topxDashRenderCharts(card);
-		topxDashSaveLayout(grid);
-		topxDashSyncAddOptions(grid);
-	});
-}
-
-/** Whether a card with the given key is currently on the grid. */
-function topxDashHasCard(grid, key) {
-	var present = false;
-	grid.querySelectorAll('.topxDashCard').forEach(function(card) {
-		if (card.dataset.card === key) {
-			present = true;
-		}
-	});
-	return present;
-}
-
-/** Remove a card from the page and return it to the "Add" catalogue. */
-function topxDashRemoveCard(grid, card) {
-	card.parentNode.removeChild(card);
-	topxDashSaveLayout(grid);
-	topxDashSyncAddOptions(grid);
-}
-
-/** Re-fetch a single card's HTML and swap it in place, keeping expanded state. */
-function topxDashRefreshCard(grid, card, done) {
-	var icon = card.querySelector('.topxDashCardTool[data-tool="refresh"] .fa, .topxDashCardTool[data-tool="refresh"] .fas');
-	if (icon) {
-		icon.classList.add('fa-spin');
-	}
-	var settle = function() {
-		if (icon) {
-			icon.classList.remove('fa-spin');
-		}
-		if (done) {
-			done();
-		}
-	};
-	var expanded = card.classList.contains('topxDashCardExpanded') ? '1' : '0';
-	var cfg = topxDashCfg(grid);
-	$.post(cfg.page, topxDashPost(grid, {action: cfg.cardAction, card: card.dataset.card, expanded: expanded}), null, 'json').done(function(data) {
-		if (!data || !data.html || !card.parentNode) {
-			settle();
-			return;
-		}
-		var fresh = topxDashParseCard(data.html);
-		if (!fresh) {
-			settle();
-			return;
-		}
-		// Read the card's expanded state and sort at swap time: the user may have toggled
-		// or sorted it while this request was in flight, and that live state must win over
-		// anything captured when the request was sent.
-		var sorted = topxDashSortSnapshot(card);
-		if (card.classList.contains('topxDashCardExpanded')) {
-			fresh.classList.add('topxDashCardExpanded');
-		} else {
-			fresh.classList.remove('topxDashCardExpanded');
-		}
-		card.parentNode.replaceChild(fresh, card);
-		topxDashBindCard(grid, fresh);
-		topxDashRenderCharts(fresh);
-		topxDashSortRestore(fresh, sorted);
-		if (done) {
-			done();
-		}
-	}).fail(settle);
-}
 
 /** Refresh every card on the page, spinning the toolbar glyph until all land. A
  *  refresh that is still in flight is not stacked on, so a slow server is never
@@ -703,7 +640,7 @@ var topxDashRefreshing = false;
 
 function topxDashRefreshAll(grid, button) {
 	var icon = button ? button.querySelector('.fa, .fas') : null;
-	var cards = Array.prototype.slice.call(grid.querySelectorAll('.topxDashCard'));
+	var cards = Array.prototype.slice.call(grid.querySelectorAll('.ccCard'));
 	var pending = cards.length;
 	if (!pending || topxDashRefreshing) {
 		return;
@@ -897,9 +834,9 @@ function topxDashMaximize(card) {
 	if (!dialog) {
 		return;
 	}
-	var title = card.querySelector('.topxDashCardTitle');
-	var body  = card.querySelector('.topxDashCardBody');
-	dialog.innerHTML = '<div class="topxDashDialogBody">' + (body ? body.innerHTML : '') + '</div>';
+	var title = card.querySelector('.ccTitle');
+	var body  = card.querySelector('.ccCardBody');
+	dialog.innerHTML = '<div class="ccDialogBody">' + (body ? body.innerHTML : '') + '</div>';
 
 	// The dialog is a clone outside the grid, so wire its own sort handlers.
 	topxDashPrepSortHeaders(dialog);
@@ -913,12 +850,6 @@ function topxDashMaximize(card) {
 	});
 }
 
-/** Parse a card HTML string into its <section> element. */
-function topxDashParseCard(html) {
-	var tmp = document.createElement('div');
-	tmp.innerHTML = html;
-	return tmp.querySelector('.topxDashCard');
-}
 
 /** Rebuild the "Add" dropdown so it lists only cards not currently on the page. */
 function topxDashSyncAddOptions(grid) {
@@ -927,7 +858,7 @@ function topxDashSyncAddOptions(grid) {
 		return;
 	}
 	var present = {};
-	grid.querySelectorAll('.topxDashCard').forEach(function(card) {
+	grid.querySelectorAll('.ccCard').forEach(function(card) {
 		if (card.dataset.card) {
 			present[card.dataset.card] = true;
 		}
@@ -960,36 +891,3 @@ function topxDashShowStatus(grid, message) {
 var topxDashSaveInFlight = false;
 var topxDashSaveQueued = false;
 
-function topxDashSaveLayout(grid) {
-	if (topxDashSaveInFlight) {
-		topxDashSaveQueued = true;
-		return;
-	}
-	topxDashSaveInFlight = true;
-
-	var order = [];
-	var expanded = {};
-	grid.querySelectorAll('.topxDashCard').forEach(function(card) {
-		if (!card.dataset.card) {
-			return;
-		}
-		order.push(card.dataset.card);
-		if (card.classList.contains('topxDashCardExpanded')) {
-			expanded[card.dataset.card] = true;
-		}
-	});
-
-	var cfg = topxDashCfg(grid);
-	$.post(cfg.page, topxDashPost(grid, {
-		action: cfg.layoutAction,
-		layout: JSON.stringify({order: order, expanded: expanded})
-	}), null, 'json').done(function(data) {
-		topxDashShowStatus(grid, data && data.error ? data.error : '');
-	}).always(function() {
-		topxDashSaveInFlight = false;
-		if (topxDashSaveQueued) {
-			topxDashSaveQueued = false;
-			topxDashSaveLayout(grid);
-		}
-	});
-}

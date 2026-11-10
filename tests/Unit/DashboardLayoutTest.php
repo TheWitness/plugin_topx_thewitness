@@ -56,7 +56,7 @@ describe('topx_dashboard_chart', function (): void {
 	});
 
 	it('returns an empty-state message when there is nothing to chart', function (): void {
-		expect(topx_dashboard_chart([], [], 'bits', true))->toContain('topxDashEmpty');
+		expect(topx_dashboard_chart([], [], 'bits', true))->toContain('ccEmpty');
 	});
 });
 
@@ -80,7 +80,7 @@ describe('topx_overview_card_body uptime', function (): void {
 			return [];
 		};
 
-		expect(topx_overview_card_body('uptime'))->toContain('topxDashEmpty');
+		expect(topx_overview_card_body('uptime'))->toContain('ccEmpty');
 
 		unset($GLOBALS['__test_db_fetch_assoc']);
 	});
@@ -139,7 +139,7 @@ describe('topx_drilldown_card_body distribution', function (): void {
 
 		$body = topx_drilldown_card_body('distribution', $ds);
 
-		expect($body)->toContain('topxStackBar');
+		expect($body)->toContain('ccStack');
 		expect($body)->toContain('topxDashNote');
 		expect($body)->toContain('100% = the peak');
 
