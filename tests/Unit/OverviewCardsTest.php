@@ -97,6 +97,98 @@ describe('topx_overview_records', function (): void {
 	});
 });
 
+describe('topx_overview_supported_only', function (): void {
+	beforeEach(function (): void {
+		$_SESSION = [];
+		$GLOBALS['__test_request']         = [];
+		$GLOBALS['__test_nfilter_request'] = [];
+	});
+
+	it('defaults to on (supported-only) when nothing is stored', function (): void {
+		expect(topx_overview_supported_only())->toBeTrue();
+		expect($_SESSION['sess_topx_overview_supported'])->toBe('1');
+	});
+
+	it('persists an off request value', function (): void {
+		$GLOBALS['__test_request']         = ['supported' => '0'];
+		$GLOBALS['__test_nfilter_request'] = ['supported' => '0'];
+
+		expect(topx_overview_supported_only())->toBeFalse();
+		expect($_SESSION['sess_topx_overview_supported'])->toBe('0');
+	});
+
+	it('persists an on request value', function (): void {
+		$GLOBALS['__test_request']         = ['supported' => '1'];
+		$GLOBALS['__test_nfilter_request'] = ['supported' => '1'];
+
+		expect(topx_overview_supported_only())->toBeTrue();
+		expect($_SESSION['sess_topx_overview_supported'])->toBe('1');
+	});
+
+	it('honours a stored off preference', function (): void {
+		$_SESSION = ['sess_topx_overview_supported' => '0'];
+
+		expect(topx_overview_supported_only())->toBeFalse();
+	});
+});
+
+describe('topx_dashboard_toolbar_supported', function (): void {
+	it('renders a checked Supported toggle when on', function (): void {
+		ob_start();
+		topx_dashboard_toolbar_supported(true);
+		$html = (string) ob_get_clean();
+
+		expect($html)->toContain('topx_dashboard_supported');
+		expect($html)->toContain('Supported');
+		expect($html)->toContain('checked');
+	});
+
+	it('renders an unchecked Supported toggle when off', function (): void {
+		ob_start();
+		topx_dashboard_toolbar_supported(false);
+		$html = (string) ob_get_clean();
+
+		expect($html)->toContain('topx_dashboard_supported');
+		expect($html)->not->toContain('checked');
+	});
+});
+
+describe('topx_overview_card_body types supported filter', function (): void {
+	beforeEach(function (): void {
+		$_SESSION = [];
+		$GLOBALS['__test_request']         = [];
+		$GLOBALS['__test_nfilter_request'] = [];
+		$GLOBALS['__test_db_fetch_assoc']  = function ($sql) {
+			if (strpos($sql, 'plugin_topx_source') !== false) {
+				return [['dsname' => 'Device - Uptime', 'dsid' => '3', 'tplid' => '12', 'sorting' => 'asc', 'dscount' => '2', 'sup' => 'true']];
+			}
+
+			return [['dsname' => 'Legacy RAM', 'dsid' => '9', 'dscount' => '1', 'sup' => 'false']];
+		};
+	});
+
+	afterEach(function (): void {
+		unset($GLOBALS['__test_db_fetch_assoc']);
+		$_SESSION = [];
+	});
+
+	it('lists only supported sources by default', function (): void {
+		$body = topx_overview_card_body('types');
+
+		expect($body)->toContain('Device - Uptime');
+		expect($body)->not->toContain('Legacy RAM');
+	});
+
+	it('includes unsupported sources when the toggle is off', function (): void {
+		$_SESSION = ['sess_topx_overview_supported' => '0'];
+
+		$body = topx_overview_card_body('types');
+
+		expect($body)->toContain('Device - Uptime');
+		expect($body)->toContain('Legacy RAM');
+	});
+});
+
 describe('topx_overview_card_filter', function (): void {
 	beforeEach(function (): void {
 		$GLOBALS['__test_request']         = [];

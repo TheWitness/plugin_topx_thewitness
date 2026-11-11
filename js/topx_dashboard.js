@@ -377,6 +377,10 @@ function initTopxDashboard() {
 					params.push(name + '=' + encodeURIComponent(el.value));
 				}
 			});
+			var supported = document.getElementById('topx_dashboard_supported');
+			if (supported) {
+				params.push('supported=' + (supported.checked ? '1' : '0'));
+			}
 			var sep = c.reload.indexOf('?') === -1 ? '?' : '&';
 			loadPageNoHeader(c.reload + sep + params.join('&') + '&header=false');
 		};
@@ -386,6 +390,10 @@ function initTopxDashboard() {
 				$(el).off('change.topxdash').on('change.topxdash', filterReload);
 			}
 		});
+		var supportedToggle = document.getElementById('topx_dashboard_supported');
+		if (supportedToggle) {
+			$(supportedToggle).off('change.topxdash').on('change.topxdash', filterReload);
+		}
 	});
 }
 
