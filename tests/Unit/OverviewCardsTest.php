@@ -133,22 +133,24 @@ describe('topx_overview_supported_only', function (): void {
 });
 
 describe('topx_dashboard_toolbar_supported', function (): void {
-	it('renders a checked Supported toggle when on', function (): void {
+	it('renders the Supported toggle as a Cacti switch, checked, when on', function (): void {
 		ob_start();
 		topx_dashboard_toolbar_supported(true);
 		$html = (string) ob_get_clean();
 
-		expect($html)->toContain('topx_dashboard_supported');
+		expect($html)->toContain('id="topx_dashboard_supported"');
+		expect($html)->toContain('class="checkboxSwitch"');
+		expect($html)->toContain('checkboxSlider checkboxRound');
 		expect($html)->toContain('Supported');
 		expect($html)->toContain('checked');
 	});
 
-	it('renders an unchecked Supported toggle when off', function (): void {
+	it('renders the Supported switch unchecked when off', function (): void {
 		ob_start();
 		topx_dashboard_toolbar_supported(false);
 		$html = (string) ob_get_clean();
 
-		expect($html)->toContain('topx_dashboard_supported');
+		expect($html)->toContain('class="checkboxSwitch"');
 		expect($html)->not->toContain('checked');
 	});
 });
