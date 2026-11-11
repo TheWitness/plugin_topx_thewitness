@@ -42,10 +42,18 @@
 	--cc-header-bg: color-mix(in srgb, currentColor 9%, transparent);
 }
 
-/* Narrow the grid before cards get cramped; the .ccW* spans clamp to the tracks. */
+/* Narrow the grid before cards get cramped; clamp the shared .ccW* spans to the
+   reduced column count so they stack instead of creating implicit columns. */
 @media (max-width: 1200px) {
 	#topx_dashboard.ccGrid {
 		--cc-cols: 4;
+	}
+
+	#topx_dashboard.ccGrid .ccW5,
+	#topx_dashboard.ccGrid .ccW6,
+	#topx_dashboard.ccGrid .ccW7,
+	#topx_dashboard.ccGrid .ccW8 {
+		grid-column: 1 / -1;
 	}
 }
 
@@ -53,6 +61,10 @@
 	#topx_dashboard.ccGrid {
 		--cc-cols: 1;
 		gap: 10px;
+	}
+
+	#topx_dashboard.ccGrid > .ccCard {
+		grid-column: 1 / -1;
 	}
 }
 
