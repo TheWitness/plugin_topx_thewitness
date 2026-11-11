@@ -90,17 +90,38 @@ function topx_order_column(string $what): string {
 
 /**
  * Clamps the requested record limit to one of the supported values so it is
- * safe to interpolate directly into a LIMIT clause.
+ * safe to interpolate directly into a LIMIT clause. A negative value selects the
+ * Bottom |N| end of the ranking (see topx_ranking_window()).
  *
  * @param int|string $topx The requested record count.
  *
- * @return int One of the supported counts (0, 5, 10, 20, 50); 5 otherwise.
+ * @return int One of the supported counts (0, +/-5, +/-10, +/-20, +/-50); 5 otherwise.
  */
 function topx_record_limit($topx): int {
-	$allowed = [0, 5, 10, 20, 50];
+	$allowed = [0, 5, 10, 20, 50, -5, -10, -20, -50];
 	$topx    = (int) $topx;
 
 	return in_array($topx, $allowed, true) ? $topx : 5;
+}
+
+/**
+ * Resolve a records selector value into the LIMIT count and the effective sort
+ * direction for a ranking query. A negative value selects the Bottom |N| by
+ * flipping the sort direction so the lowest-ranked rows are returned; zero means
+ * All (no limit).
+ *
+ * @param int    $records The validated records value (negative selects Bottom).
+ * @param string $dir     The base sort direction ('ASC' or 'DESC').
+ *
+ * @return array{limit: int, dir: string} The absolute LIMIT and effective direction.
+ */
+function topx_ranking_window(int $records, string $dir): array {
+	if ($records < 0) {
+		$dir     = ($dir === 'ASC') ? 'DESC' : 'ASC';
+		$records = -$records;
+	}
+
+	return ['limit' => $records, 'dir' => $dir];
 }
 
 /**

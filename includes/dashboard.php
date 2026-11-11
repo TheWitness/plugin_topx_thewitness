@@ -547,6 +547,21 @@ function topx_dashboard_toolbar_records(int $selected): void {
 }
 
 /**
+ * Render the Overview's "Supported" toggle. When checked (the default) the Data
+ * Sources card lists only supported sources; unchecking it reveals unsupported
+ * sources as well. Changing it reloads the Overview in place so the server
+ * re-validates and persists the preference.
+ *
+ * @param bool $on Whether the toggle is currently on (supported-only).
+ *
+ * @return void
+ */
+function topx_dashboard_toolbar_supported(bool $on): void {
+	print '<label class="ccToolbarLabel" for="topx_dashboard_supported">' . __esc('Supported', 'topx') . '</label>';
+	print '<input type="checkbox" id="topx_dashboard_supported" class="topxDashSupported"' . ($on ? ' checked' : '') . '>';
+}
+
+/**
  * Renders an Edit/Add Rule link in the drilldown toolbar for users who may
  * manage the TopX Data Sources. For a supported source it links to the editor
  * for that definition; for an unsupported template it links to the editor
@@ -792,6 +807,12 @@ function topx_overview_card_body(string $key): string {
 		case 'types':
 			$list = topx_get_ds_list();
 
+			if (topx_overview_supported_only()) {
+				$list = array_filter($list, static function (array $entry): bool {
+					return ($entry['supported'] ?? 'false') === 'true';
+				});
+			}
+
 			if (cacti_sizeof($list) === 0) {
 				print '<p class="ccEmpty">' . __esc('No data sources are available yet.', 'topx') . '</p>';
 
@@ -899,6 +920,25 @@ function topx_overview_records(): int {
 }
 
 /**
+ * The Overview's "Supported" toggle, validated and persisted in the session. A
+ * request value ('1'/'0') wins and is remembered; otherwise the stored value is
+ * used, defaulting to on so the Data Sources card lists only supported sources.
+ *
+ * @return bool True when the Data Sources card should list only supported sources.
+ */
+function topx_overview_supported_only(): bool {
+	if (isset_request_var('supported')) {
+		$_SESSION['sess_topx_overview_supported'] = (get_nfilter_request_var('supported') === '0') ? '0' : '1';
+	}
+
+	if (!isset($_SESSION['sess_topx_overview_supported'])) {
+		$_SESSION['sess_topx_overview_supported'] = '1';
+	}
+
+	return $_SESSION['sess_topx_overview_supported'] === '1';
+}
+
+/**
  * Render a complete Overview card.
  *
  * @param string $key      The card key.
@@ -977,6 +1017,7 @@ function topx_overview_dashboard(): void {
 	print '<div class="ccToolbar">';
 	topx_dashboard_toolbar_timespan();
 	topx_dashboard_toolbar_records(topx_overview_records());
+	topx_dashboard_toolbar_supported(topx_overview_supported_only());
 	topx_dashboard_toolbar_add($absent, $meta);
 	topx_dashboard_toolbar_refresh($current_refresh);
 	print '</div>';
@@ -1129,10 +1170,10 @@ function topx_drilldown_available_cards(): array {
 function topx_drilldown_payload(array $ds, array $filter): array {
 	$table          = topx_dashboard_bucket();
 	$order          = topx_order_column($filter['what']);
-	$dir            = topx_sort_direction($filter['sort']);
+	$window         = topx_ranking_window((int) $filter['records'], topx_sort_direction($filter['sort']));
 	$computed_order = ($filter['what'] === 'peak') ? 'xpeak' : 'xvalue';
 
-	$ranking = topx_compute_ranking($ds['key'], $ds['supported'], $table, $order, $dir, $filter['records'], $computed_order);
+	$ranking = topx_compute_ranking($ds['key'], $ds['supported'], $table, $order, $window['dir'], $window['limit'], $computed_order);
 
 	$peak = 0.0;
 

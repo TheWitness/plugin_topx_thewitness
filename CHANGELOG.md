@@ -18,6 +18,8 @@ All notable changes to the TopX plugin are documented in this file.
 * feature: Default the Metric Expression to `field=field` for single-field templates and validate range threshold ordering on save.
 * feature: Clarify the editor's display formatting with **Display Format** (Static Unit / Division by Unit Ladder), a dedicated **Decimal Places** dropdown, and a **Display Unit Ladder** shown only for the Division format.
 * feature: Compose the **Overview** tab from individual supported Data Source cards via the Add card dropdown, with a shared **TopX** record-limit selector that governs only the data-source cards.
+* feature: Add a **Supported** toggle to the Overview toolbar (on by default) that filters the Data Sources card to list only supported sources; unchecking it reveals unsupported sources as well. The choice is remembered for the session.
+* feature: Extend the **TopX** record-limit selector with **Bottom 5/10/20/50** options (ordered Top, then Bottom, then All) that rank the lowest values instead of the highest by flipping the ranking direction.
 * feature: Rework the UI into draggable card dashboards (Overview + per-source Drilldown) on the shared Cacti card engine, with per-card tools, a timespan selector, auto-refresh and per-user layout persistence.
 * feature: Show the Ranking Chart average and peak on each bar as a bullet-style bar with vivid, theme-appropriate health colours, a green band that runs up to the Warning threshold, and a Peak/Avg legend.
 * feature: Render a plain, theme-legible Peak/Average bullet for sources with no health range instead of painting every bar as an alert.

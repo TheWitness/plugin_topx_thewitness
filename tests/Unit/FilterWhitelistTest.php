@@ -33,5 +33,17 @@ describe('request value whitelisting', function (): void {
 		expect(topx_record_limit(0))->toBe(0);
 		expect(topx_record_limit(99))->toBe(5);
 		expect(topx_record_limit('5 UNION SELECT'))->toBe(5);
+		expect(topx_record_limit('-20'))->toBe(-20);
+		expect(topx_record_limit(-99))->toBe(5);
+	});
+
+	it('keeps a Top window on the same direction and limit', function (): void {
+		expect(topx_ranking_window(10, 'DESC'))->toBe(['limit' => 10, 'dir' => 'DESC']);
+		expect(topx_ranking_window(0, 'ASC'))->toBe(['limit' => 0, 'dir' => 'ASC']);
+	});
+
+	it('flips the direction and takes the absolute limit for a Bottom window', function (): void {
+		expect(topx_ranking_window(-10, 'DESC'))->toBe(['limit' => 10, 'dir' => 'ASC']);
+		expect(topx_ranking_window(-5, 'ASC'))->toBe(['limit' => 5, 'dir' => 'DESC']);
 	});
 });

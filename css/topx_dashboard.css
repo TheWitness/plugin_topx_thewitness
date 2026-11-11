@@ -28,6 +28,11 @@
 	   maximize dialog (reparented under <body> by jQuery UI) as well. */
 }
 
+/* The .ccToolbar above the grid is a sibling of #topx_dashboard, not a child, so
+   bind the shared palette to it here as well; otherwise .ccToolbarLabel/.ccAdd
+   fall back to the light-theme #23362f default and render dark green on dark
+   themes such as deepness. */
+.ccToolbar,
 #topx_dashboard.ccGrid,
 #topx_dashboard_dialog {
 	--cc-cols: 8;
@@ -61,6 +66,12 @@
 	background: color-mix(in srgb, currentColor 4%, transparent);
 	color: inherit;
 	font-size: 12px;
+}
+
+/* The Overview "Supported" toggle sits inline with the toolbar labels. */
+.topxDashSupported {
+	margin: 0 2px 0 0;
+	vertical-align: middle;
 }
 
 /* The Edit/Add Rule link is themed by Cacti's jQuery UI button classes

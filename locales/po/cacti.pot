@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Cacti \n"
 "Report-Msgid-Bugs-To: developers@cacti.net\n"
-"POT-Creation-Date: 2026-11-07 10:08-0500\n"
+"POT-Creation-Date: 2026-11-10 20:14-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Cacti Developers <developers@cacti.net>>\n"
 "Language-Team: Cacti Developers <developers@cacti.net>\n"
@@ -52,6 +52,22 @@ msgstr ""
 
 #: includes/arrays.php
 msgid "Top 50"
+msgstr ""
+
+#: includes/arrays.php
+msgid "Bottom 5"
+msgstr ""
+
+#: includes/arrays.php
+msgid "Bottom 10"
+msgstr ""
+
+#: includes/arrays.php
+msgid "Bottom 20"
+msgstr ""
+
+#: includes/arrays.php
+msgid "Bottom 50"
 msgstr ""
 
 #: includes/arrays.php topx_sources.php
@@ -171,6 +187,10 @@ msgstr ""
 msgid "TopX"
 msgstr ""
 
+#: includes/dashboard.php topx_sources.php
+msgid "Supported"
+msgstr ""
+
 #: includes/dashboard.php
 msgid "Edit Rule"
 msgstr ""
@@ -197,10 +217,6 @@ msgstr ""
 
 #: includes/dashboard.php
 msgid "Source Types"
-msgstr ""
-
-#: includes/dashboard.php topx_sources.php
-msgid "Supported"
 msgstr ""
 
 #: includes/dashboard.php
