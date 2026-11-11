@@ -558,7 +558,10 @@ function topx_dashboard_toolbar_records(int $selected): void {
  */
 function topx_dashboard_toolbar_supported(bool $on): void {
 	print '<label class="ccToolbarLabel" for="topx_dashboard_supported">' . __esc('Supported', 'topx') . '</label>';
-	print '<input type="checkbox" id="topx_dashboard_supported" class="topxDashSupported"' . ($on ? ' checked' : '') . '>';
+	print '<label class="checkboxSwitch">'
+		. '<input type="checkbox" class="formCheckbox" id="topx_dashboard_supported"' . ($on ? ' checked' : '') . '>'
+		. '<span class="checkboxSlider checkboxRound"></span>'
+		. '</label>';
 }
 
 /**

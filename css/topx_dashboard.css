@@ -68,12 +68,6 @@
 	font-size: 12px;
 }
 
-/* The Overview "Supported" toggle sits inline with the toolbar labels. */
-.topxDashSupported {
-	margin: 0 2px 0 0;
-	vertical-align: middle;
-}
-
 /* The Edit/Add Rule link is themed by Cacti's jQuery UI button classes
    (ui-button ui-state-active); only the toolbar alignment is set here. */
 .topxDashEdit {
