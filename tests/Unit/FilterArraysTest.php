@@ -11,7 +11,7 @@ describe('topx_filter_arrays', function (): void {
 
 		expect($filters)->toHaveKeys(['age', 'records', 'sort', 'what']);
 		expect($filters['age'])->toHaveKeys(['hour', 'day', 'week', 'month', 'year']);
-		expect($filters['records'])->toHaveKeys(['5', '10', '20', '50', '0']);
+		expect(array_keys($filters['records']))->toBe([5, 10, 20, 50, -5, -10, -20, -50, 0]);
 		expect($filters['sort'])->toHaveKeys(['asc', 'desc']);
 		expect($filters['what'])->toHaveKeys(['average', 'peak']);
 	});

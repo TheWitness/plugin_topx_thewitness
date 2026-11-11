@@ -1170,10 +1170,10 @@ function topx_drilldown_available_cards(): array {
 function topx_drilldown_payload(array $ds, array $filter): array {
 	$table          = topx_dashboard_bucket();
 	$order          = topx_order_column($filter['what']);
-	$dir            = topx_sort_direction($filter['sort']);
+	$window         = topx_ranking_window((int) $filter['records'], topx_sort_direction($filter['sort']));
 	$computed_order = ($filter['what'] === 'peak') ? 'xpeak' : 'xvalue';
 
-	$ranking = topx_compute_ranking($ds['key'], $ds['supported'], $table, $order, $dir, $filter['records'], $computed_order);
+	$ranking = topx_compute_ranking($ds['key'], $ds['supported'], $table, $order, $window['dir'], $window['limit'], $computed_order);
 
 	$peak = 0.0;
 
