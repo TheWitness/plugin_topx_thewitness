@@ -28,6 +28,11 @@
 	   maximize dialog (reparented under <body> by jQuery UI) as well. */
 }
 
+/* The .ccToolbar above the grid is a sibling of #topx_dashboard, not a child, so
+   bind the shared palette to it here as well; otherwise .ccToolbarLabel/.ccAdd
+   fall back to the light-theme #23362f default and render dark green on dark
+   themes such as deepness. */
+.ccToolbar,
 #topx_dashboard.ccGrid,
 #topx_dashboard_dialog {
 	--cc-cols: 8;
