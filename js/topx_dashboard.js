@@ -194,15 +194,16 @@ function topxDashRefreshCard(grid, card, done) {
 		}
 	};
 	var snapshot = topxDashSortSnapshot(card);
+	var wasExpanded = card.classList.contains('ccCardExpanded');
 	var cfg = topxDashCfg(grid);
-	$.post(cfg.page, topxDashPost(grid, {action: cfg.cardAction, card: card.dataset.card, expanded: card.classList.contains('ccCardExpanded') ? '1' : '0'}), null, 'json').done(function(data) {
+	$.post(cfg.page, topxDashPost(grid, {action: cfg.cardAction, card: card.dataset.card, expanded: wasExpanded ? '1' : '0'}), null, 'json').done(function(data) {
 		if (!data || !data.html || !card.parentNode || !window.CactiCards || !topxDashAdapter) {
 			settle();
 			return;
 		}
 		// replaceCard rebinds the fresh card and re-runs applyTheme (which renders
 		// the chart and prepares the sort headers); restore the live sort after.
-		var fresh = CactiCards.replaceCard(grid, topxDashAdapter, card, data.html);
+		var fresh = CactiCards.replaceCard(grid, topxDashAdapter, card, data.html, wasExpanded);
 		if (fresh) {
 			topxDashSortRestore(fresh, snapshot);
 		}
@@ -282,9 +283,10 @@ function initTopxDashboard() {
 			// Own the per-card Refresh swap so the live sort survives the swap.
 			onRefresh: function(id, card) {
 				var snapshot = topxDashSortSnapshot(card);
-				fetchCard(id, card.classList.contains('ccCardExpanded')).then(function(html) {
+				var wasExpanded = card.classList.contains('ccCardExpanded');
+				fetchCard(id, wasExpanded).then(function(html) {
 					if (html != null && window.CactiCards) {
-						var fresh = CactiCards.replaceCard(grid, adapter, card, html);
+						var fresh = CactiCards.replaceCard(grid, adapter, card, html, wasExpanded);
 						if (fresh) {
 							topxDashSortRestore(fresh, snapshot);
 						}
